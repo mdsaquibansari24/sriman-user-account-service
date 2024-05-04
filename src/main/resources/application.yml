@@ -1,0 +1,24 @@
+server:
+  port: 8090
+spring:
+  application:
+    name: user-account-service
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/user_account_db
+    username: extrade_user
+    password: extrade@1
+  jpa:
+    show-sql: true
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: srimanodwa4@gmail.com
+    password: asdfl
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enabled: true
+
