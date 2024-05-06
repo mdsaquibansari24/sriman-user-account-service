@@ -11,6 +11,7 @@ public class UserAccountDto {
     private String lastName;
     private String mobileNo;
     private String emailAddress;
+    private String password;
     private LocalDate dob;
     private String gender;
     private int mobileNoOtpVerificationStatus;

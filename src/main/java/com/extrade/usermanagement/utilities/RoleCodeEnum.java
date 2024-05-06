@@ -7,7 +7,8 @@ public enum RoleCodeEnum {
     CUSTOMER("C"),
     TECHNICIAN("T"),
     STORE_ADMIN("SA"),
-    CSR("CSR");
+    CSR("CSR"),
+    STORE_STAFF("SS");
 
     private final String name;
 

@@ -13,7 +13,7 @@ public class UserAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_account_id")
-    private String userAccountId;
+    private long userAccountId;
     @Column(name = "email_address")
     private String emailAddress;
     private String password;
