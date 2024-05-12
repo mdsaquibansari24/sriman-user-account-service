@@ -1,5 +1,6 @@
 package com.extrade.usermanagement.service;
 
+
 import com.extrade.usermanagement.dto.UserAccountDto;
 
 public interface UserManagmentService {
