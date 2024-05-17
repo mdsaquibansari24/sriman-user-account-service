@@ -7,13 +7,15 @@ import com.extrade.usermanagement.dto.AccountVerificationStatusDto;
 import com.extrade.usermanagement.dto.UserAccountDto;
 import com.extrade.usermanagement.entities.Role;
 import com.extrade.usermanagement.entities.UserAccount;
+import com.extrade.usermanagement.exceptions.AccountVerificationException;
+import com.extrade.usermanagement.exceptions.UserAccountNotFoundException;
+import com.extrade.usermanagement.exceptions.UserAlreadyActivatedException;
+import com.extrade.usermanagement.exceptions.VerificationCodeMisMatchException;
 import com.extrade.usermanagement.repositories.RoleRepository;
 import com.extrade.usermanagement.repositories.UserAccountRepository;
 import com.extrade.usermanagement.utilities.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.actuate.autoconfigure.observation.ObservationProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import java.util.Optional;
 public class UserManagementServiceImpl implements UserManagmentService {
     private final String TMPL_VERIFY_EMAIL = "confirm-email.html";
     private final String TMPL_VERIFY_MOBILE = "confirm-mobile.html";
+    private final String TMPL_CUSTOMER_WELCOME = "customer-welcome.html";
 
     private final UserAccountRepository userAccountRepository;
     private final NotificationManager notificationManager;
@@ -139,19 +142,21 @@ public class UserManagementServiceImpl implements UserManagmentService {
     }
 
     @Override
+    @Transactional(readOnly = false)
     public AccountVerificationStatusDto verifyOtpAndUpdateAccountStatus(int userAccountId,
                                                                         String verificationCode,
                                                                         VerificationTypeEnum verificationType) {
         LocalDate now = LocalDate.now();
         UserAccount userAccount = null;
         AccountVerificationStatusDto accountVerificationStatusDto = null;
+        MailNotification mailNotification = null;
 
         Optional<UserAccount> optionalUserAccount = userAccountRepository.findById(userAccountId);
 
         if (optionalUserAccount.isEmpty()) {
-            throw new HttpClientErrorException(HttpStatus.NOT_FOUND,
-                    "UserAccount Not Found, so Account verification failed");
+            throw new UserAccountNotFoundException("UserAccount with id:" + userAccountId + " does not exists to verify");
         }
+        userAccount = optionalUserAccount.get();
 
 
         accountVerificationStatusDto = AccountVerificationStatusDto.of().userAccountId(userAccountId)
@@ -160,18 +165,18 @@ public class UserManagementServiceImpl implements UserManagmentService {
                 .accountStatus(userAccount.getStatus()).build();
 
         if (userAccount.getStatus().equals(UserAccountStatusEnum.ACTIVE.toString())) {
-            throw new HttpClientErrorException(HttpStatus.IM_USED, "UserAccount already activiated");
+            throw new UserAlreadyActivatedException("UserAccount Id:" + userAccountId + " has already activated");
         }
 
-        if (verificationType == VerificationTypeEnum.VERIFICATION_TYPE_MOBILE) {
+        if (verificationType == VerificationTypeEnum.VERIFY_MOBILE) {
 
             if (userAccount.getMobileNoVerificationStatus()
                     == UserAccountConstants.OTP_STATUS_VERIFIED) {
-                throw new HttpClientErrorException(HttpStatus.ALREADY_REPORTED, "Mobile Verification already finished");
+                throw new AccountVerificationException("Mobile verification already finished", verificationType);
             }
 
             if (userAccount.getMobileNoVerificationOtpCode().equals(verificationCode) == false) {
-                throw new HttpClientErrorException(HttpStatus.CONFLICT, "mobile verification code mis-match");
+                throw new VerificationCodeMisMatchException("mobile verification code mis-match", verificationType);
             }
 
             accountVerificationStatusDto.setMobileVerificationStatus(UserAccountConstants.OTP_STATUS_VERIFIED);
@@ -182,13 +187,13 @@ public class UserManagementServiceImpl implements UserManagmentService {
                 userAccount.setStatus(UserAccountStatusEnum.ACTIVE.toString());
                 userAccount.setActivatedDate(now);
             }
-        } else if (verificationType == VerificationTypeEnum.VERIFICATION_TYPE_EMAIL_ADDRESS) {
+        } else if (verificationType == VerificationTypeEnum.VERIFY_EMAIL_ADDRESS) {
             if (userAccount.getEmailVerificationStatus() == UserAccountConstants.OTP_STATUS_VERIFIED) {
-                throw new HttpClientErrorException(HttpStatus.ALREADY_REPORTED, "email address is already verified");
+                throw new AccountVerificationException("email address is already verified", verificationType);
             }
 
             if (userAccount.getEmailVerificationOtpCode().equals(verificationCode) == false) {
-                throw new HttpClientErrorException(HttpStatus.CONFLICT, "email verification code mis-match");
+                throw new VerificationCodeMisMatchException("email verification code mis-match", verificationType);
             }
 
             accountVerificationStatusDto.setEmailVerificationStatus(UserAccountConstants.OTP_STATUS_VERIFIED);
@@ -204,7 +209,21 @@ public class UserManagementServiceImpl implements UserManagmentService {
         //here
         int records = userAccountRepository.updateUserAccount(userAccountId, userAccount.getEmailVerificationStatus()
                 , userAccount.getMobileNoVerificationStatus()
-                , now, userAccount.getActivatedDate(), userAccount.getStatus());
+                , LocalDateTime.now(), userAccount.getActivatedDate(), userAccount.getStatus());
+
+        if (userAccount.getStatus().equals(UserAccountStatusEnum.ACTIVE.toString()) && records > 0) {
+            Map<String, Object> tokens = new HashMap<>();
+            tokens.put("user", userAccount.getFirstName() + " " + userAccount.getLastName());
+            tokens.put("eXtradeWebLink", xtradeCustomerWebLink);
+
+            mailNotification = new MailNotification();
+            mailNotification.setFrom("noreply@xtrade.com");
+            mailNotification.setTo(new String[]{userAccount.getEmailAddress()});
+            mailNotification.setSubject("Welcome to XTrade Platform");
+            mailNotification.setTemplateName(TMPL_CUSTOMER_WELCOME);
+            mailNotification.setTokens(tokens);
+            mailNotification.setAttachments(Collections.emptyList());
+        }
 
         return accountVerificationStatusDto;
     }
