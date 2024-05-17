@@ -8,4 +8,11 @@ public class UserManagementServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(UserManagementServiceApplication.class, args);
     }
+
+    /*@Bean
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
+    }*/
+
+
 }

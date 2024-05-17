@@ -1,51 +1,53 @@
 package com.extrade.usermanagement.service;
 
-
 import com.extrade.connect.beans.notification.MailNotification;
 import com.extrade.connect.beans.notification.Notification;
 import com.extrade.connect.manager.NotificationManager;
+import com.extrade.usermanagement.dto.AccountVerificationStatusDto;
 import com.extrade.usermanagement.dto.UserAccountDto;
 import com.extrade.usermanagement.entities.Role;
 import com.extrade.usermanagement.entities.UserAccount;
 import com.extrade.usermanagement.repositories.RoleRepository;
 import com.extrade.usermanagement.repositories.UserAccountRepository;
-import com.extrade.usermanagement.utilities.RandomGenerator;
-import com.extrade.usermanagement.utilities.RoleCodeEnum;
-import com.extrade.usermanagement.utilities.UserAccountConstants;
-import com.extrade.usermanagement.utilities.UserAccountStatusEnum;
-import lombok.RequiredArgsConstructor;
+import com.extrade.usermanagement.utilities.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.actuate.autoconfigure.observation.ObservationProperties;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
-
 @Slf4j
 public class UserManagementServiceImpl implements UserManagmentService {
-    private final String TEMP_VERIFY_EMAIL="emai-verification.html";
-    private final String TEMP_VERIFY_MOBILE="mobile-verification.html";
-
-
+    private final String TMPL_VERIFY_EMAIL = "confirm-email.html";
+    private final String TMPL_VERIFY_MOBILE = "confirm-mobile.html";
 
     private final UserAccountRepository userAccountRepository;
+    private final NotificationManager notificationManager;
     private final RoleRepository roleRepository;
     private final String xtradeCustomerWebLink;
-    private final NotificationManager notificationManager;
-    public UserManagementServiceImpl(UserAccountRepository userAccountRepository, RoleRepository roleRepository, @Value("${eXtrade.customer.weblink}") String xtradeCustomerWebLink, NotificationManager notificationManager) {
+
+
+    public UserManagementServiceImpl(UserAccountRepository userAccountRepository,
+                                     NotificationManager notificationManager,
+                                     RoleRepository roleRepository,
+                                     @Value("${eXtrade.customer.weblink}") String xtradeCustomerWebLink) {
         this.userAccountRepository = userAccountRepository;
+        //this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.notificationManager = notificationManager;
         this.roleRepository = roleRepository;
         this.xtradeCustomerWebLink = xtradeCustomerWebLink;
-        this.notificationManager = notificationManager;
     }
-
-
 
     @Override
     @Transactional(readOnly = true)
@@ -56,104 +58,187 @@ public class UserManagementServiceImpl implements UserManagmentService {
     @Override
     @Transactional(readOnly = true)
     public long countUsersByMobileNo(String mobileNo) {
-
         return userAccountRepository.countByMobileNo(mobileNo);
     }
 
     @Override
-    @Transactional(readOnly=false)
+    @Transactional(readOnly = false)
     public long registerCustomer(UserAccountDto userAccountDto) {
-        Long userAccountId=null;
-        Role userRole=null;
-        UserAccount userAccount=null;
-        RandomGenerator randomGenerator=null;
-        String emailVerificationLink=null;
-        MailNotification mailNotification=null;//creating mail notifiction object
-        LocalDateTime time=null;
-        String emailVerificationOtpCode=null;
-        String mobileNoVerificationOtpCode=null;
-        time=LocalDateTime.now();
+        Role userRole = null;
+        LocalDateTime time = null;
+        long userAccountId = 0;
+        UserAccount userAccount = null;
+        String emailVerificationOtpCode = null;
+        String mobileNoVerificationOtpCode = null;
+        String emailVerificationLink = null;
+        MailNotification mailNotification = null;
 
-        userRole=roleRepository.findByRoleCode(RoleCodeEnum.CUSTOMER.toString());
-        log.info("fetching user roleId: {} with user role code: {}",userRole.getRoleId(),RoleCodeEnum.CUSTOMER.toString());
+        time = LocalDateTime.now();
+        emailVerificationOtpCode = RandomGenerator.randomAlphaNumericSpecialCharsSequence(8);
+        mobileNoVerificationOtpCode = RandomGenerator.randomNumericSequence(6);
 
-        randomGenerator=new RandomGenerator();
-        emailVerificationOtpCode=randomGenerator.emailAddressVerificationOtpGenerator(6);
-        mobileNoVerificationOtpCode=randomGenerator.mobileNoVerificationOtpGenerator(6);
+        userRole = roleRepository.findByRoleCode(RoleCodeEnum.CUSTOMER.toString());
+        log.info("fetched the user role id: {} for the role_cd: {}", userRole.getRoleId(), RoleCodeEnum.CUSTOMER.toString());
 
-
-        userAccount=new UserAccount();
-        userAccount.setUserAccountId(userAccountDto.getUserAccountId());
+        userAccount = new UserAccount();
         userAccount.setFirstName(userAccountDto.getFirstName());
         userAccount.setLastName(userAccountDto.getLastName());
         userAccount.setEmailAddress(userAccountDto.getEmailAddress());
         userAccount.setMobileNo(userAccountDto.getMobileNo());
-        userAccount.setDob(userAccountDto.getDob());
-        userAccount.setGender(userAccountDto.getGender());
         userAccount.setPassword(userAccountDto.getPassword());
+        userAccount.setGender(userAccountDto.getGender());
+        userAccount.setDob(userAccountDto.getDob());
         userAccount.setEmailVerificationOtpCode(emailVerificationOtpCode);
         userAccount.setMobileNoVerificationOtpCode(mobileNoVerificationOtpCode);
         userAccount.setEmailVerificationOtpCodeGeneratedDate(time);
         userAccount.setMobileNoVerificationOtpCodeGeneratedDate(time);
-        userAccount.setRegisteredDate(LocalDate.now());
         userAccount.setUserRole(userRole);
-        userAccount.setMobileNoVerificationStatus((short) 0);
+        userAccount.setRegisteredDate(LocalDate.now());
         userAccount.setEmailVerificationStatus((short) 0);
-        userAccount.setLastModifiedDate(time);
+        userAccount.setMobileNoVerificationStatus((short) 0);
         userAccount.setLastModifiedBy(UserAccountConstants.SYSTEM_USER);
-        userAccount.setStatus(UserAccountStatusEnum.REGISTERED.toString());
+        userAccount.setLastModifiedDate(time);
+        userAccount.setStatus(UserAccountStatusEnum.REGISTERED.getName());
 
-        userAccountId=userAccountRepository.save(userAccount).getUserAccountId();
-        log.info("userAccount with email: {} saved with userAccountId: {}",userAccount.getEmailAddress(),userAccountId);
+        userAccountId = userAccountRepository.save(userAccount).getUserAccountId();
+        log.info("userAccount of email: {} has been saved with userAccountId:{}", userAccount.getEmailAddress(), userAccountId);
 
         try {
-            // generating link to be sent to user email address for verification
+
             emailVerificationLink = xtradeCustomerWebLink + "/customer/" + userAccountId + "/"
                     + emailVerificationOtpCode + "/verifyEmail";
-            log.info("email verification link: {} generated", emailVerificationLink);
+            log.debug("email verification link: {} generated", emailVerificationLink);
+
+            Map<String, Object> tokens = new HashMap<>();
+            tokens.put("user", userAccountDto.getFirstName() + " " + userAccountDto.getLastName());
+            tokens.put("link", emailVerificationLink);
 
             mailNotification = new MailNotification();
             mailNotification.setFrom("noreply@xtrade.com");
             mailNotification.setTo(new String[]{userAccountDto.getEmailAddress()});
             mailNotification.setSubject("verify your email address");
-            mailNotification.setTemplateName(TEMP_VERIFY_EMAIL);
-            log.info("getting templatename: {}",mailNotification.getTemplateName());
-
-            //setting tokens
-            Map<String, Object> tokens = new HashMap<>();
-            tokens.put("user", userAccountDto.getFirstName() + " " + userAccountDto.getLastName());
-            tokens.put("link", emailVerificationLink);
-
+            mailNotification.setTemplateName(TMPL_VERIFY_EMAIL);
             mailNotification.setTokens(tokens);
             mailNotification.setAttachments(Collections.emptyList());
-            //sending mail
+
             notificationManager.email(mailNotification);
-            log.info("mail sent successfully to: {}",userAccountDto.getEmailAddress());
 
-            //sending otp to mobile number
-            Notification notification=new MailNotification();
-            notification.setFrom("+93-0011223");
+            Notification notification = new MailNotification();
+            notification.setFrom("+91-9393933");
             notification.setTo(new String[]{userAccountDto.getMobileNo()});
-            notification.setTemplateName(TEMP_VERIFY_MOBILE);
-            //setting tokens
-            tokens=new HashMap<>();
-            tokens.put("user",userAccountDto.getFirstName());
-            tokens.put("otp",mobileNoVerificationOtpCode);
-            notification.setTokens(tokens);
-            log.info("otp sent successfully to: {}",userAccountDto.getMobileNo());
+            notification.setTemplateName(TMPL_VERIFY_MOBILE);
+            tokens = new HashMap<>();
+            tokens.put("mobileOtpCode", mobileNoVerificationOtpCode);
 
-            //sending otp
             notificationManager.text(notification);
-
-
-
-        }catch (Exception e){
-            log.error("error while sending the email to user: {} error: {}",userAccountDto.getEmailAddress(),e);
+        } catch (Exception e) {
+            log.error("error while sending the email to user :{}", userAccountDto.getEmailAddress(), e);
         }
 
         return userAccountId;
     }
 
+    @Override
+    public AccountVerificationStatusDto verifyOtpAndUpdateAccountStatus(int userAccountId,
+                                                                        String verificationCode,
+                                                                        VerificationTypeEnum verificationType) {
+        LocalDate now = LocalDate.now();
+        UserAccount userAccount = null;
+        AccountVerificationStatusDto accountVerificationStatusDto = null;
 
+        Optional<UserAccount> optionalUserAccount = userAccountRepository.findById(userAccountId);
+
+        if (optionalUserAccount.isEmpty()) {
+            throw new HttpClientErrorException(HttpStatus.NOT_FOUND,
+                    "UserAccount Not Found, so Account verification failed");
+        }
+
+
+        accountVerificationStatusDto = AccountVerificationStatusDto.of().userAccountId(userAccountId)
+                .emailVerificationStatus(userAccount.getEmailVerificationStatus())
+                .mobileVerificationStatus(userAccount.getMobileNoVerificationStatus())
+                .accountStatus(userAccount.getStatus()).build();
+
+        if (userAccount.getStatus().equals(UserAccountStatusEnum.ACTIVE.toString())) {
+            throw new HttpClientErrorException(HttpStatus.IM_USED, "UserAccount already activiated");
+        }
+
+        if (verificationType == VerificationTypeEnum.VERIFICATION_TYPE_MOBILE) {
+
+            if (userAccount.getMobileNoVerificationStatus()
+                    == UserAccountConstants.OTP_STATUS_VERIFIED) {
+                throw new HttpClientErrorException(HttpStatus.ALREADY_REPORTED, "Mobile Verification already finished");
+            }
+
+            if (userAccount.getMobileNoVerificationOtpCode().equals(verificationCode) == false) {
+                throw new HttpClientErrorException(HttpStatus.CONFLICT, "mobile verification code mis-match");
+            }
+
+            accountVerificationStatusDto.setMobileVerificationStatus(UserAccountConstants.OTP_STATUS_VERIFIED);
+            userAccount.setMobileNoVerificationStatus(UserAccountConstants.OTP_STATUS_VERIFIED);
+
+            if (userAccount.getEmailVerificationStatus() == UserAccountConstants.OTP_STATUS_VERIFIED) {
+                accountVerificationStatusDto.setAccountStatus(UserAccountStatusEnum.ACTIVE.toString());
+                userAccount.setStatus(UserAccountStatusEnum.ACTIVE.toString());
+                userAccount.setActivatedDate(now);
+            }
+        } else if (verificationType == VerificationTypeEnum.VERIFICATION_TYPE_EMAIL_ADDRESS) {
+            if (userAccount.getEmailVerificationStatus() == UserAccountConstants.OTP_STATUS_VERIFIED) {
+                throw new HttpClientErrorException(HttpStatus.ALREADY_REPORTED, "email address is already verified");
+            }
+
+            if (userAccount.getEmailVerificationOtpCode().equals(verificationCode) == false) {
+                throw new HttpClientErrorException(HttpStatus.CONFLICT, "email verification code mis-match");
+            }
+
+            accountVerificationStatusDto.setEmailVerificationStatus(UserAccountConstants.OTP_STATUS_VERIFIED);
+            userAccount.setEmailVerificationStatus(UserAccountConstants.OTP_STATUS_VERIFIED);
+
+            if (userAccount.getMobileNoVerificationStatus() == UserAccountConstants.OTP_STATUS_VERIFIED) {
+                accountVerificationStatusDto.setAccountStatus(UserAccountStatusEnum.ACTIVE.toString());
+                userAccount.setStatus(UserAccountStatusEnum.ACTIVE.toString());
+                userAccount.setActivatedDate(now);
+            }
+        }
+
+        //here
+        int records = userAccountRepository.updateUserAccount(userAccountId, userAccount.getEmailVerificationStatus()
+                , userAccount.getMobileNoVerificationStatus()
+                , now, userAccount.getActivatedDate(), userAccount.getStatus());
+
+        return accountVerificationStatusDto;
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -9,9 +9,11 @@ public enum RoleCodeEnum {
     STORE_ADMIN("SA"),
     CSR("CSR"),
     STORE_STAFF("SS");
+
     private final String name;
 
-    public String toString(){
+    @Override
+    public String toString() {
         return this.name;
     }
 }

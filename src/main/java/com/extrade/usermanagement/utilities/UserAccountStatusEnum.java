@@ -1,22 +1,20 @@
 package com.extrade.usermanagement.utilities;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum UserAccountStatusEnum {
-    ACTIVE("A"),
     REGISTERED("R"),
+    ACTIVE("A"),
     LOCKED("L"),
     DISABLED("D");
 
+    @Getter
     private final String name;
 
-    public String toString(){
-        return this.name;
+    @Override
+    public String toString() {
+        return name;
     }
-
-//    public static void main(String[] args) {
-//        System.out.println(UserAccountStatusEnum.ACTIVE.toString());
-    }
-
-
+}
