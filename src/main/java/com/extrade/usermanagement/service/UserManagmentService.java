@@ -12,4 +12,12 @@ public interface UserManagmentService {
     long registerCustomer(UserAccountDto userAccountDto);
 
     AccountVerificationStatusDto verifyOtpAndUpdateAccountStatus(int userAccountId, String verificationCode, VerificationTypeEnum verificationType);
+
+    AccountVerificationStatusDto accountVerificationStatus(int userAccountId);
+
+    UserAccountDto getUserAccountByEmailAddress(String emailAddress);
+
+    void resendMobileOTPCode(int userAccountId);
+
+    void resendVerificationEmail(int userAccountId);
 }

@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum UserAccountStatusEnum {
-    REGISTERED("R"),
     ACTIVE("A"),
     LOCKED("L"),
     DISABLED("D");

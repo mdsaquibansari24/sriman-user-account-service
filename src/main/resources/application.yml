@@ -45,7 +45,7 @@ eXtrade:
   template:
     dir: ${user.home}/projectworkspace/templates/
   customer:
-    weblink: http://localhost:8088/
+    weblink: http://localhost:8088
 
 
 

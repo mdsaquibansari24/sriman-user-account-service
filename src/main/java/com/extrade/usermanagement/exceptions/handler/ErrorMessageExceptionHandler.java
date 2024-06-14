@@ -31,13 +31,13 @@ public class ErrorMessageExceptionHandler {
     @ExceptionHandler(UserAlreadyActivatedException.class)
     public ResponseEntity<ErrorMessage> handleUserAlreadyActivatedException(HttpServletRequest request, UserAlreadyActivatedException e) {
         log.error(request.getRequestURL().toString(), e);
-        return ResponseEntity.status(HttpStatus.ALREADY_REPORTED).body(errorMessageFactory.failure(e, ErrorCodes.USER_ALREADY_ACTIVATED));
+        return ResponseEntity.status(HttpStatus.GONE).body(errorMessageFactory.failure(e, ErrorCodes.USER_ALREADY_ACTIVATED));
     }
 
     @ExceptionHandler(AccountVerificationException.class)
     public ResponseEntity<ErrorMessage> handleAccountVerificationException(HttpServletRequest request, AccountVerificationException e) {
         log.error(request.getRequestURL().toString(), e);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessageFactory.failure(e, ErrorCodes.OTPCODE_ALREADY_VERIFIED));
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorMessageFactory.failure(e, ErrorCodes.OTPCODE_ALREADY_VERIFIED));
     }
 
     @ExceptionHandler(VerificationCodeMisMatchException.class)

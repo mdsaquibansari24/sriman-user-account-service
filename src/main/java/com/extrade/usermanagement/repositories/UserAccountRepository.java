@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public interface UserAccountRepository extends JpaRepository<UserAccount, Integer> {
     long countByEmailAddress(String emailAddress);
@@ -18,4 +19,6 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Intege
     int updateUserAccount(long userAccountId, short emailVerificationCodeVerifiedStatus,
                           short mobileVerificationCodeVerifiedStatus, LocalDateTime lastModifiedDate, LocalDate activatedDate,
                           String accountStatus);
+
+    Optional<UserAccount> findByEmailAddress(String emailAddress);
 }

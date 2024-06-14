@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 
 @Component
@@ -15,7 +16,7 @@ public class ErrorMessageFactory {
         return ErrorMessage.of().
                 messageID(UUID.randomUUID().toString())
                 .errorCode(errorCode)
-                .messageDateTime(LocalDateTime.now())
+                .messageDateTime(new Date())
                 .errorMessage(exception.getMessage())
                 .originator(originator).build();
     }

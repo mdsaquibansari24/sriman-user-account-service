@@ -1,17 +1,21 @@
 package com.extrade.usermanagement.dto;
 
-import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
-
+@Builder(builderMethodName = "of")
+@JsonIgnoreProperties(ignoreUnknown = true)
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserAccountDto {
-    @JsonIgnore
     private int userAccountId;
     private String firstName;
     private String lastName;
@@ -21,11 +25,7 @@ public class UserAccountDto {
     @JsonFormat(pattern = "yyyy/MM/dd")
     private LocalDate dob;
     private String gender;
-    @JsonIgnore
-    private int mobileNoOtpVerificationStatus;
-    @JsonIgnore
-    private int emailAddressOtpVerificationStatus;
-    @JsonIgnore
+    private String roleCode;
     private String status;
 
 }

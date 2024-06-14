@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 @Getter
 @Builder(builderMethodName = "of")
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class ErrorMessage {
     private final String messageID;
     private final String errorCode;
-    private final LocalDateTime messageDateTime;
+    private final Date messageDateTime;
     private final String errorMessage;
     private final String originator;
 

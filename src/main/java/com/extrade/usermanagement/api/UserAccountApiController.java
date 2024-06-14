@@ -1,6 +1,7 @@
 package com.extrade.usermanagement.api;
 
 import com.extrade.usermanagement.dto.AccountVerificationStatusDto;
+import com.extrade.usermanagement.dto.ErrorMessage;
 import com.extrade.usermanagement.dto.UserAccountDto;
 import com.extrade.usermanagement.service.UserManagmentService;
 import com.extrade.usermanagement.utilities.VerificationTypeEnum;
@@ -61,6 +62,11 @@ public class UserAccountApiController {
     }
 
     @PutMapping(value = "/{userAccountId}/{otpCode}/{verificationType}", produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound for verification"),
+            @ApiResponse(responseCode = "410", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount already activated"),
+            @ApiResponse(responseCode = "400", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "VerificationCode Mis-Match"),
+            @ApiResponse(responseCode = "422", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "Otp Already Verified"),
+            @ApiResponse(responseCode = "200", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = AccountVerificationStatusDto.class))}, description = "OTP Verified")})
     public AccountVerificationStatusDto verifyOtpCode(@PathVariable("userAccountId") int userAccountId,
                                                       @PathVariable("otpCode") String verificationCode,
                                                       @PathVariable("verificationType") VerificationTypeEnum verificationType) {
@@ -70,4 +76,59 @@ public class UserAccountApiController {
 
         return verificationStatusDto;
     }
+
+    @GetMapping(value = "/{userAccountId}/verificationStatus", produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound for verification status"),
+            @ApiResponse(responseCode = "200", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = AccountVerificationStatusDto.class))}, description = "OTP Verified")})
+    public AccountVerificationStatusDto getUserAccountVerificationStatus(@PathVariable("userAccountId") int userAccountId) {
+        return userManagmentService.accountVerificationStatus(userAccountId);
+    }
+
+
+    @GetMapping(value = "/details", produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound"),
+            @ApiResponse(responseCode = "200", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = UserAccountDto.class))}, description = "User Account Information")})
+    public UserAccountDto getUserAccountByEmailAddress(@RequestParam("emailAddress") String emailAddress) {
+        return userManagmentService.getUserAccountByEmailAddress(emailAddress);
+    }
+
+    @PutMapping(value = "/{userAccountId}/resendMobileOTP")
+    @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound"),
+            @ApiResponse(responseCode = "200", description = "Mobile OTP Code Resent")})
+    public ResponseEntity<Void> resendMobileOTPCode(@PathVariable("userAccountId") int userAccountId) {
+        userManagmentService.resendMobileOTPCode(userAccountId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping(value = "/{userAccountId}/resendEmailVerificationLink")
+    @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound"),
+            @ApiResponse(responseCode = "200", description = "Email Verification Link Resent")})
+    public ResponseEntity<Void> resendEmailVerificationLink(@PathVariable("userAccountId") int userAccountId) {
+        userManagmentService.resendVerificationEmail(userAccountId);
+        return ResponseEntity.ok().build();
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
