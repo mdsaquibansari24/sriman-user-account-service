@@ -84,6 +84,12 @@ public class UserAccountApiController {
         return userManagmentService.accountVerificationStatus(userAccountId);
     }
 
+    @GetMapping(value = "/{emailAddress}/verificationStatusByEmail", produces = {MediaType.APPLICATION_JSON_VALUE})
+    @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound for verification status"),
+            @ApiResponse(responseCode = "200", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = AccountVerificationStatusDto.class))}, description = "OTP Verified")})
+    public AccountVerificationStatusDto getUserAccountVerificationStatusByEmail(@RequestParam("emailAddress") String emailAddress) {
+        return userManagmentService.accountVerificationStatusByEmail(emailAddress);
+    }
 
     @GetMapping(value = "/details", produces = {MediaType.APPLICATION_JSON_VALUE})
     @ApiResponses(value = {@ApiResponse(responseCode = "404", content = {@Content(mediaType = "application/json", schema = @Schema(implementation = ErrorMessage.class))}, description = "UserAccount NotFound"),

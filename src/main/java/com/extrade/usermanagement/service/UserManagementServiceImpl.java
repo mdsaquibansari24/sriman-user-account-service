@@ -162,6 +162,8 @@ public class UserManagementServiceImpl implements UserManagmentService {
 
 
         accountVerificationStatusDto = AccountVerificationStatusDto.of().userAccountId(userAccountId)
+                .emailAddress(userAccount.getEmailAddress())
+                .mobileNo(userAccount.getMobileNo())
                 .emailVerificationStatus(userAccount.getEmailVerificationStatus())
                 .mobileVerificationStatus(userAccount.getMobileNoVerificationStatus())
                 .accountStatus(userAccount.getStatus()).build();
@@ -259,6 +261,32 @@ public class UserManagementServiceImpl implements UserManagmentService {
 
     @Transactional(readOnly = true)
     @Override
+    public AccountVerificationStatusDto accountVerificationStatusByEmail(String emailAddress) {
+        Optional<UserAccount> optionalUserAccount = null;
+        UserAccount userAccount = null;
+        AccountVerificationStatusDto accountVerificationStatusDto = null;
+
+
+        optionalUserAccount = userAccountRepository.findByEmailAddress(emailAddress);
+        if (optionalUserAccount.isEmpty()) {
+            throw new UserAccountNotFoundException("UserAccount with email: " + emailAddress + " is not found to fetch details");
+        }
+        userAccount = optionalUserAccount.get();
+
+        accountVerificationStatusDto = AccountVerificationStatusDto.of()
+                .userAccountId(userAccount.getUserAccountId())
+                .emailVerificationStatus(userAccount.getEmailVerificationStatus())
+                .mobileVerificationStatus(userAccount.getMobileNoVerificationStatus())
+                .mobileNo(userAccount.getMobileNo())
+                .emailAddress(userAccount.getEmailAddress())
+                .accountStatus(userAccount.getStatus()).build();
+
+
+        return accountVerificationStatusDto;
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public UserAccountDto getUserAccountByEmailAddress(final String emailAddress) {
         Optional<UserAccount> optionalUserAccount = null;
         UserAccount userAccount = null;
@@ -300,7 +328,7 @@ public class UserManagementServiceImpl implements UserManagmentService {
             throw new UserAccountNotFoundException("user with userAccountId : " + userAccountId + " not found");
         }
         userAccount = userAccountOptional.get();
-        if(! userAccount.getStatus().equals(UserAccountStatusEnum.LOCKED.toString())) {
+        if (!userAccount.getStatus().equals(UserAccountStatusEnum.LOCKED.toString())) {
             throw new UserAlreadyActivatedException("user with userAccountId :" + userAccountId + " is already actived or disabled");
         }
         mobileNoVerificationOtpCode = RandomGenerator.randomNumericSequence(6);
@@ -335,7 +363,7 @@ public class UserManagementServiceImpl implements UserManagmentService {
         }
         userAccount = userAccountOptional.get();
 
-        if(! userAccount.getStatus().equals(UserAccountStatusEnum.LOCKED.toString())) {
+        if (!userAccount.getStatus().equals(UserAccountStatusEnum.LOCKED.toString())) {
             throw new UserAlreadyActivatedException("user with userAccountId :" + userAccountId + " is already actived or disabled");
         }
 

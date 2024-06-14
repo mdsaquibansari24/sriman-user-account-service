@@ -20,4 +20,6 @@ public interface UserManagmentService {
     void resendMobileOTPCode(int userAccountId);
 
     void resendVerificationEmail(int userAccountId);
+
+    AccountVerificationStatusDto accountVerificationStatusByEmail(String emailAddress);
 }
