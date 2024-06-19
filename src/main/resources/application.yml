@@ -30,7 +30,7 @@ logging:
       file-name-pattern: /var/log/xtrade-user-account-%d{yyyy-MM-dd}.%i.log
       max-file-size: 10MB
       max-history: 30
-      total-size-cap: 100GB
+      total-size-cap: 1GB
 
 springdoc:
   api-docs:
